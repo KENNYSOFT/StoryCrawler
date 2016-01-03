@@ -1,0 +1,164 @@
+#include<iostream>
+using namespace std;
+#define DOMAIN "http://storycrawler.0101010101.com"
+#define PATH "/oauth"
+#include"KENNYHTTPSOCKET.H"
+#include"json/json.h"
+#pragma comment(lib,"lib_json.lib")
+FILE*ftmp;
+char idarr[10010][20];
+int idcnt;
+struct file
+{
+	int overcnt;
+	char data[1000];
+	void initialize()
+	{
+		overcnt=0;
+		memset(data,0,sizeof(data));
+	}
+	bool push(FILE*src,int n=1)
+	{
+		int i;
+		char tmp[1];
+		for(i=1;i<=n;++i)
+		{
+			fread(tmp,1,1,src);
+			if(feof(src))
+			{
+				if(overcnt<sizeof(data))
+				{
+					tmp[0]=0;
+					overcnt++;
+				}
+				else return false;
+			}
+			memmove(data,data+1,sizeof(data)-1);
+			data[sizeof(data)-1]=tmp[0];
+		}
+		return true;
+	}
+}data;
+int main()
+{
+	KENNYHTTPSOCKET req,req2("POST"),req3("POST"),req4,req5;
+	char header[1024],url[1024],content[1024],command[1024],file[1024],extension[32],progress[32];
+	char _kawlt[1024],stsc[1024],csts[1024],code[1024],token[1024],stories[65536],story[16384];
+	int i,j,k;
+	Json::Value json;
+	Json::Reader reader;
+	ftmp=fopen("_kawlt.txt","r");
+	fscanf(ftmp,"%s",_kawlt);
+	fclose(ftmp);
+	req.setUrl("https://kauth.kakao.com/oauth/authorize?client_id=ff54d7552fee1cd457df311f85e5fa03&redirect_uri="DOMAIN""PATH"&response_type=code");
+	req.setCookie("_kawlt",_kawlt);
+	if(req.responseHeaderToFile("code.txt")!=302)
+	{
+		req.responseBodyToFile("login.txt");
+		ftmp=fopen("login.txt","r");
+		data.initialize();
+		while(data.push(ftmp))
+		{
+			if(!strncmp(data.data,"<input name=\"stsc\" value=\"",26))
+			{
+				data.push(ftmp,26);
+				sscanf(data.data,"%[^\"]s",stsc);
+			}
+			if(!strncmp(data.data,"<input name=\"csts\" value=\"",26))
+			{
+				data.push(ftmp,26);
+				sscanf(data.data,"%[^\"]s",csts);
+			}
+		}
+		fclose(ftmp);
+		sprintf(content,"user_oauth_approval=true&stsc=%s&csts=%s",stsc,csts);
+		req2.setUrl("https://kauth.kakao.com/oauth/authorize?client_id=ff54d7552fee1cd457df311f85e5fa03&redirect_uri="DOMAIN""PATH"&response_type=code");
+		req2.setContent(content);
+		req2.responseHeaderToFile("code.txt");
+	}
+	ftmp=fopen("code.txt","r");
+	data.initialize();
+	while(data.push(ftmp))
+	{
+		if(!strncmp(data.data,DOMAIN"/oauth?code=",strlen(DOMAIN)+12))
+		{
+			data.push(ftmp,strlen(DOMAIN)+12);
+			sscanf(data.data,"%s",code);
+		}
+	}
+	fclose(ftmp);
+	sprintf(content,"grant_type=authorization_code&client_id=ff54d7552fee1cd457df311f85e5fa03&redirect_uri="DOMAIN"/oauth&code=%s",code);
+	req3.setUrl("https://kauth.kakao.com/oauth/token");
+	req3.setContent(content);
+	req3.responseBodyToFile("token.txt");
+	ftmp=fopen("token.txt","r");
+	data.initialize();
+	while(data.push(ftmp))
+	{
+		if(!strncmp(data.data,"\"access_token\":\"",16))
+		{
+			data.push(ftmp,16);
+			sscanf(data.data,"%[^\"]s",token);
+		}
+	}
+	fclose(ftmp);
+	sprintf(header,"Authorization: Bearer %s",token);
+	req4.setHeader(header);
+	while(1)
+	{
+		if(idcnt)sprintf(url,"https://kapi.kakao.com/v1/api/story/mystories?last_id=%s",idarr[idcnt-1]);
+		else sprintf(url,"https://kapi.kakao.com/v1/api/story/mystories");
+		req4.setUrl(url);
+		req4.responseBodyToFile("stories.txt");
+		ftmp=fopen("stories.txt","r");
+		fgets(stories,sizeof(stories),ftmp);
+		fclose(ftmp);
+		reader.parse(stories,json);
+		if(json.size()==0)break;
+		for(i=0;i<json.size();++i)strcpy(idarr[idcnt++],json[i]["id"].asString().c_str());
+		cout<<"Collecting... "<<idcnt<<" stories collected."<<endl;
+#ifdef _DEBUG
+		break;
+#endif
+	}
+	for(i=idcnt-1;i>=0;--i)
+	{
+		cout<<idcnt-i<<" "<<idarr[i]<<" ";
+		sprintf(url,"https://kapi.kakao.com/v1/api/story/mystory?id=%s",idarr[i]);
+		req4.setUrl(url);
+		req4.responseBodyToFile("story.txt");
+		sprintf(command,"md \"%d %s\" 2>nul",idcnt-i, idarr[i]);
+		system(command);
+		ftmp=fopen("story.txt","r");
+		fgets(story,sizeof(story),ftmp);
+		fclose(ftmp);
+		reader.parse(story,json);
+		for(j=0;j<json["media"].size();++j)
+		{
+			sprintf(progress,"[%d/%d]",j,json["media"].size());
+			cout<<progress;
+			strcpy(file,json["media"][j]["original"].asString().c_str());
+			for(k=strlen(file)-1;;--k)if(file[k]=='.')break;
+			memset(extension,0,sizeof(extension));
+			for(;file[k]!='?'&&file[k]!='\0';++k)extension[strlen(extension)]=file[k];
+			sprintf(file,"img%d%s",j,extension);
+			req5.setUrl(json["media"][j]["original"].asString().c_str());
+			req5.responseBodyToFile(file);
+			sprintf(command,"move %s \"%d %s\" >nul",file,idcnt-i,idarr[i]);
+			system(command);
+			for(k=0;k<strlen(progress);++k)cout<<"\b";
+		}
+		// TODO: story.txt parse and construct html
+		// TODO: if NOT_SUPPORTED(share) get webpage and parse from there
+		// TODO: information.txt - include storycrawler version, collected time
+		sprintf(command,"move story.txt \"%d %s\" >nul",idcnt-i,idarr[i]);
+		system(command);
+		cout<<"["<<json["media"].size()<<"/"<<json["media"].size()<<"]"<<endl;
+	}
+	system("del login.txt 2>nul");
+	system("del code.txt 2>nul");
+	system("del token.txt 2>nul");
+	system("del stories.txt 2>nul");
+	system("del story.txt 2>nul");
+	return 0;
+}
