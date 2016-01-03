@@ -21,7 +21,7 @@ int main(int argc,char *argv[])
 	Json::Reader reader;
 	if(argc!=2)return 0;
 	strcpy(code,argv[1]);
-	sprintf(content,"grant_type=authorization_code&client_id=ff54d7552fee1cd457df311f85e5fa03&redirect_uri=http://kennysoft.github.io/StoryCrawler/web/oauth.html&code=%s",code);
+	sprintf(content,"grant_type=authorization_code&client_id=ff54d7552fee1cd457df311f85e5fa03&redirect_uri=http://kennysoft.github.io/StoryCrawler/oauth.html&code=%s",code);
 	req.setUrl("https://kauth.kakao.com/oauth/token");
 	req.setContent(content);
 	req.responseBodyToFile("token.txt");
