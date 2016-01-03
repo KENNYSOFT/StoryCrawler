@@ -7,9 +7,10 @@
 		<script>
 		$(document).ready(function()
 		{
-			$('#downloadLink').attr('href','data:application/text;charset=utf-8,'+encodeURIComponent('StoryCrawler.exe '+location.search.split('code=')[1])); 
-			$('#downloadLink').attr('download','StoryCrawler.bat');
-			$('#downloadLink')[0].click();
+			$("#downloadLink").attr("href","data:application/text;charset=utf-8,"+encodeURIComponent("StoryCrawler.exe "+location.search.split("code=")[1])); 
+			$("#downloadLink").attr("download","StoryCrawler.bat");
+			$("#downloadLink")[0].click();
+			location.href="index.html";
 		});
 		</script>
 	</head>
