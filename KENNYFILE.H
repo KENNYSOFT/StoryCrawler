@@ -1,6 +1,6 @@
 #ifndef __KENNYFILE_H__
 #define __KENNYFILE_H__
-#define VERSION_KENNYFILE "1.5.1"
+#define VERSION_KENNYFILE "1.6.1"
 #pragma warning(disable:4786)
 #include<fstream>
 using namespace std;
@@ -17,7 +17,7 @@ public:
 	}
 	~KENNYFILE()
 	{
-		fclose(fin);
+		if(fin)fclose(fin);
 	}
 	void setFile(const char *fileName=NULL)
 	{
@@ -104,7 +104,7 @@ public:
 		str[n]=0;
 		return str;
 	}
-	char* getString(char *str,char *until)
+	char* getString(char *str,const char *until)
 	{
 		int i;
 		if(!fin)return NULL;
@@ -137,13 +137,14 @@ public:
 	}
 	int strcmp(const char *str,unsigned int offset=0)
 	{
-		int l=strlen(str),ret;
-		char *org=(char*)malloc(size+1);
-		if(l>data.size())return -1;
-		getString(org,offset+strlen(str));
-		ret=::strcmp(org+offset,str);
-		free(org);
-		return ret;
+		int i,l=strlen(str);
+		if(offset+l>data.size())return -1;
+		for(i=0;i<l;++i)
+		{
+			if(str[i]>data[offset+i])return 1;
+			if(str[i]<data[offset+i])return -1;
+		}
+		return 0;
 	}
 private:
 	FILE *fin;

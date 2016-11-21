@@ -24,7 +24,7 @@ int main(int argc,char *argv[])
 	sprintf(content,"grant_type=authorization_code&client_id=ff54d7552fee1cd457df311f85e5fa03&redirect_uri=http://kennysoft.github.io/StoryCrawler/oauth.html&code=%s",code);
 	req.setUrl("https://kauth.kakao.com/oauth/token");
 	req.setContent(content);
-	req.responseBodyToFile("token.txt");
+	req.getResponseBodyToFile("token.txt");
 	KENNYFILE fp("token.txt");
 	fp.findStringAndPush("\"access_token\":\"");
 	fp.getString(token,"\"");
@@ -35,7 +35,7 @@ int main(int argc,char *argv[])
 		if(idcnt)sprintf(url,"https://kapi.kakao.com/v1/api/story/mystories?last_id=%s",idarr[idcnt-1]);
 		else sprintf(url,"https://kapi.kakao.com/v1/api/story/mystories");
 		req2.setUrl(url);
-		req2.responseBodyToFile("stories.txt");
+		req2.getResponseBodyToFile("stories.txt");
 		ftmp=fopen("stories.txt","r");
 		fgets(stories,sizeof(stories),ftmp);
 		fclose(ftmp);
@@ -52,7 +52,7 @@ int main(int argc,char *argv[])
 		cout<<idcnt-i<<" "<<idarr[i]<<" ";
 		sprintf(url,"https://kapi.kakao.com/v1/api/story/mystory?id=%s",idarr[i]);
 		req2.setUrl(url);
-		req2.responseBodyToFile("story.txt");
+		req2.getResponseBodyToFile("story.txt");
 		sprintf(command,"md \"%d %s\" 2>nul",idcnt-i, idarr[i]);
 		system(command);
 		ftmp=fopen("story.txt","r");
@@ -69,7 +69,7 @@ int main(int argc,char *argv[])
 			for(;file[k]!='?'&&file[k]!='\0';++k)extension[strlen(extension)]=file[k];
 			sprintf(file,"img%d%s",j,extension);
 			req3.setUrl(json["media"][j]["original"].asString().c_str());
-			req3.responseBodyToFile(file);
+			req3.getResponseBodyToFile(file);
 			sprintf(command,"move %s \"%d %s\" >nul",file,idcnt-i,idarr[i]);
 			system(command);
 			for(k=0;k<strlen(progress);++k)cout<<"\b";
